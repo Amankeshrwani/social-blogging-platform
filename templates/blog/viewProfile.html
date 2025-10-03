@@ -1,0 +1,203 @@
+{% extends 'app.html' %}
+
+{% block title %}Profile - BlogPost{% endblock %}
+
+
+{% block content %}
+<style>
+    .profile-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-top: 2.5rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 3px solid var(--accent, #2563eb);
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 8px rgba(22, 28, 36, 0.10);
+    }
+
+    .profile-username {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.5rem 0 0.2rem 0;
+    }
+
+    .profile-bio {
+        color: var(--muted, #6c757d);
+        font-size: 1.1rem;
+        margin-bottom: 1.2rem;
+        text-align: center;
+        max-width: 500px;
+    }
+
+    .profile-stats {
+        display: flex;
+        gap: 2.5rem;
+        margin-top: 1.2rem;
+        font-size: 1.1rem;
+        color: var(--muted, #6c757d);
+        justify-content: center;
+    }
+
+    .profile-stats div {
+        text-align: center;
+        background: var(--card, #fff);
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(22, 28, 36, 0.06);
+        padding: 0.7rem 1.2rem;
+        min-width: 80px;
+    }
+
+    .profile-stats strong {
+        font-size: 1.3rem;
+        color: var(--accent, #2563eb);
+    }
+
+    .profile-section {
+        max-width: 700px;
+        margin: 2rem auto;
+        background: var(--card, #fff);
+        border-radius: 10px;
+        box-shadow: 0 6px 18px rgba(22, 28, 36, 0.06);
+        padding: 2rem 1.5rem;
+    }
+
+    .profile-section h4 {
+        margin-bottom: 1.2rem;
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: var(--accent, #2563eb);
+    }
+
+    .profile-post-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .profile-post-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.7rem 0;
+        border-bottom: 1px solid var(--border, #e5e7eb);
+    }
+
+    .profile-post-title {
+        font-weight: 600;
+        color: #222;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .profile-post-title:hover {
+        color: var(--accent, #2563eb);
+    }
+
+    .profile-post-date {
+        color: var(--muted, #6c757d);
+        font-size: 0.95em;
+    }
+
+    .profile-empty {
+        color: var(--muted, #6c757d);
+        font-size: 1.05em;
+        margin-top: 1rem;
+        text-align: center;
+    }
+
+    @media (max-width: 700px) {
+
+        .profile-header,
+        .profile-section {
+            max-width: 100%;
+            padding: 1rem;
+        }
+
+        .profile-stats {
+            flex-direction: column;
+            gap: 1rem;
+        }
+    }
+</style>
+
+{{static}}
+
+<div class="profile-header position-relative" style="align-items: center; flex-direction: column;">
+    {% if request.session.user_id and request.session.user_id != user.id %}
+    <div style="position:absolute;top:0;right:0;">
+        <div class="dropdown">
+            <button class="btn btn-link text-dark p-0" type="button" id="profileMenu" data-bs-toggle="dropdown"
+                aria-expanded="false" style="font-size:1.7rem;">
+                <i class="bi bi-three-dots-vertical"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileMenu">
+                <li><a class="dropdown-item" href="#"><i class="bi bi-flag me-2"></i>Report User</a></li>
+                <li><a class="dropdown-item" href="#"><i class="bi bi-slash-circle me-2"></i>Block User</a></li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+    <img src="{{ user.profile_picture.url }}" alt="Avatar" class="profile-avatar">
+    <div class="profile-username">{{ user.username }}</div>
+    <div class="profile-bio">{{ user.bio|default:'No bio yet.' }}</div>
+    <div class="profile-stats">
+        <div>
+            <strong>{{ posts.count }}</strong><br><span>Posts</span>
+        </div>
+        <div>
+            <strong>{{comments_count }}</strong><br><span>Comments</span>
+        </div>
+        <div>
+            <strong>{{ user.followers.count }}</strong><br><span>Followers</span>
+        </div>
+        <div>
+            <strong>{{ user.following.count }}</strong><br><span>Following</span>
+        </div>
+    </div>
+    {% if request.session.user_id and request.session.user_id != user.id %}
+    <div class="d-flex gap-2 mt-3">
+        {% if followed_by_current_user %}
+        <a href="{% url 'follow_user' user.id %}" class="btn btn-secondary">
+            <i class="bi bi-person-check me-1"></i>Unfollow
+        </a>
+        {% else %}
+        <a href="{% url 'follow_user' user.id %}" class="btn btn-primary">
+            <i class="bi bi-person-plus me-1"></i>Follow
+        </a>
+        {% endif %}
+        <a href="{% url 'createConversation' user.id %}" class="btn btn-outline-primary">
+            <i class="bi bi-chat-dots me-1"></i>Message
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="profile-section">
+    <h4>Recent Posts</h4>
+    {% if posts %}
+    <ul class="profile-post-list">
+        {% for post in posts %}
+        <li class="profile-post-item">
+            <a href="{% url 'postView' post.id %}" class="profile-post-title">{{ post.title }}</a>
+            <span class="profile-post-date">{{ post.created_at|date:'M d, Y' }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="profile-empty">No posts yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+{% endblock %}

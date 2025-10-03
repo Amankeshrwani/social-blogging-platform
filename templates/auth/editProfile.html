@@ -1,0 +1,61 @@
+{% extends 'app.html' %}
+
+{% block title %}Edit Profile - BlogPost{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h2 class="mb-4 text-primary">Edit Profile</h2>
+
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="d-flex flex-column align-items-center mb-4">
+                            <div class="mb-2">
+                                <img src="{{ user.profile_picture.url }}" alt="Avatar"
+                                    class="rounded-circle border border-2"
+                                    style="width:90px;height:90px;object-fit:cover;">
+                            </div>
+                            <div class="d-flex gap-2">
+                                <label for="avatar" class="btn btn-outline-primary btn-sm mb-1">
+                                    <i class="bi bi-camera me-1"></i>Change Profile Picture
+                                    <input class="form-control d-none" type="file" id="avatar" name="avatar"
+                                        accept="image/*">
+                                </label>
+                                <a href="{% url 'remove_profile_picture' %}" class="btn btn-outline-danger btn-sm mb-1"
+                                    onclick="return confirm('Remove your profile picture?');">
+                                    <i class="bi bi-x-circle me-1"></i>Remove Profile Picture
+                                </a>
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}"
+                                    placeholder="Full Name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" name="username"
+                                    value="{{ user.username }}" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="bio" class="form-label">Bio</label>
+                            <textarea class="form-control" id="bio" name="bio" rows="3"
+                                placeholder="Tell us about yourself...">{{ user.bio }}</textarea>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a href="{% url 'profile' %}" class="btn btn-outline-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

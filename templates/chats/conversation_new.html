@@ -1,0 +1,469 @@
+{% extends 'app.html' %}
+{% load static %}
+
+{% block title %}Chat with {{ other_user.username }}{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: #f8f9fa;
+    }
+
+    .chat-container {
+        max-width: 900px;
+        margin: 1rem auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        overflow: hidden;
+        height: calc(100vh - 2rem);
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Chat Header */
+    .chat-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .chat-header-left {
+        display: flex;
+        align-items: center;
+    }
+
+    .back-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.25rem;
+        cursor: pointer;
+        margin-right: 1rem;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: background 0.2s;
+    }
+
+    .back-btn:hover {
+        background: rgba(255,255,255,0.1);
+    }
+
+    .chat-user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 0.75rem;
+        border: 2px solid rgba(255,255,255,0.3);
+    }
+
+    .chat-user-info h2 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+
+    .chat-user-status {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+
+    .chat-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .chat-action-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.125rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: background 0.2s;
+    }
+
+    .chat-action-btn:hover {
+        background: rgba(255,255,255,0.1);
+    }
+
+    /* Messages Area */
+    .messages-container {
+        flex: 1;
+        padding: 1rem;
+        overflow-y: auto;
+        background: #f8f9fa;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .message {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.5rem;
+        max-width: 70%;
+        margin-bottom: 0.5rem;
+        animation: messageSlide 0.3s ease-out;
+    }
+
+    .message.sent {
+        align-self: flex-end;
+        flex-direction: row-reverse;
+    }
+
+    .message.received {
+        align-self: flex-start;
+    }
+
+    .message-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    .message-content {
+        background: white;
+        padding: 0.75rem 1rem;
+        border-radius: 18px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        word-wrap: break-word;
+        position: relative;
+    }
+
+    .message.sent .message-content {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .message.received .message-content {
+        background: white;
+        color: #333;
+    }
+
+    .message-text {
+        margin: 0;
+        line-height: 1.4;
+        font-size: 0.95rem;
+    }
+
+    .message-time {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-top: 0.25rem;
+        text-align: right;
+    }
+
+    .message.received .message-time {
+        text-align: left;
+    }
+
+    /* Message Input */
+    .message-input-container {
+        padding: 1rem 1.5rem;
+        background: white;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .message-input-form {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: #f8f9fa;
+        border-radius: 25px;
+        padding: 0.5rem;
+        border: 1px solid #e9ecef;
+        transition: border-color 0.2s;
+    }
+
+    .message-input-form:focus-within {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .message-input {
+        flex: 1;
+        border: none;
+        outline: none;
+        padding: 0.5rem 1rem;
+        background: transparent;
+        font-size: 0.95rem;
+        resize: none;
+        max-height: 100px;
+        min-height: 20px;
+    }
+
+    .message-input::placeholder {
+        color: #6c757d;
+    }
+
+    .attach-btn {
+        background: none;
+        border: none;
+        color: #6c757d;
+        font-size: 1.125rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: all 0.2s;
+    }
+
+    .attach-btn:hover {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .send-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+
+    .send-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .send-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    /* Empty State */
+    .empty-chat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .empty-chat i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-chat h3 {
+        margin: 0 0 0.5rem 0;
+        color: #495057;
+    }
+
+    /* Animations */
+    @keyframes messageSlide {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .chat-container {
+            margin: 0;
+            border-radius: 0;
+            height: 100vh;
+        }
+
+        .chat-header {
+            padding: 1rem;
+        }
+
+        .chat-user-avatar {
+            width: 35px;
+            height: 35px;
+        }
+
+        .chat-user-info h2 {
+            font-size: 1rem;
+        }
+
+        .message {
+            max-width: 85%;
+        }
+
+        .message-avatar {
+            width: 28px;
+            height: 28px;
+        }
+
+        .message-content {
+            padding: 0.625rem 0.875rem;
+            border-radius: 16px;
+        }
+
+        .message-input-container {
+            padding: 0.75rem 1rem;
+        }
+
+        .send-btn {
+            width: 36px;
+            height: 36px;
+        }
+    }
+</style>
+
+<div class="chat-container">
+    <!-- Chat Header -->
+    <div class="chat-header">
+        <div class="chat-header-left">
+            <button class="back-btn" onclick="history.back()" title="Back to chats">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <img src="{{ other_user.profile_picture.url }}" 
+                 alt="{{ other_user.username }}" 
+                 class="chat-user-avatar">
+            <div class="chat-user-info">
+                <h2>{{ other_user.username }}</h2>
+                <p class="chat-user-status">Online</p>
+            </div>
+        </div>
+        <div class="chat-actions">
+            <button class="chat-action-btn" title="Voice call">
+                <i class="bi bi-telephone"></i>
+            </button>
+            <button class="chat-action-btn" title="Video call">
+                <i class="bi bi-camera-video"></i>
+            </button>
+            <button class="chat-action-btn" title="More options">
+                <i class="bi bi-three-dots-vertical"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Messages Container -->
+    <div class="messages-container" id="messagesContainer">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="message {% if message.sender == user %}sent{% else %}received{% endif %}">
+                <img src="{{ message.sender.profile_picture.url }}" 
+                     alt="{{ message.sender.username }}" 
+                     class="message-avatar">
+                <div class="message-content">
+                    <p class="message-text">{{ message.message }}</p>
+                    <div class="message-time">{{ message.timestamp|date:"g:i A" }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-chat">
+                <i class="bi bi-chat-heart"></i>
+                <h3>Start the conversation</h3>
+                <p>Send your first message to {{ other_user.username }}</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Message Input -->
+    <div class="message-input-container">
+        <form class="message-input-form" id="messageForm">
+            {% csrf_token %}
+            <button type="button" class="attach-btn" title="Attach file">
+                <i class="bi bi-paperclip"></i>
+            </button>
+            <textarea class="message-input" 
+                      id="messageInput" 
+                      placeholder="Type a message..." 
+                      rows="1"></textarea>
+            <button type="submit" class="send-btn" id="sendBtn" title="Send message">
+                <i class="bi bi-send"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+// Auto-resize textarea
+const messageInput = document.getElementById('messageInput');
+const sendBtn = document.getElementById('sendBtn');
+const messageForm = document.getElementById('messageForm');
+const messagesContainer = document.getElementById('messagesContainer');
+
+messageInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+    
+    // Enable/disable send button
+    sendBtn.disabled = this.value.trim() === '';
+});
+
+// Submit form on Enter (but not Shift+Enter)
+messageInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (this.value.trim()) {
+            messageForm.submit();
+        }
+    }
+});
+
+// Handle form submission
+messageForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const messageText = messageInput.value.trim();
+    if (!messageText) return;
+    
+    // Create new message element
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message sent';
+    messageDiv.innerHTML = `
+        <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}" class="message-avatar">
+        <div class="message-content">
+            <p class="message-text">${messageText}</p>
+            <div class="message-time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+        </div>
+    `;
+    
+    // Add message to container
+    messagesContainer.appendChild(messageDiv);
+    
+    // Clear input
+    messageInput.value = '';
+    messageInput.style.height = 'auto';
+    sendBtn.disabled = true;
+    
+    // Scroll to bottom
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    // Here you would typically send the message to your backend
+    // For now, we'll just add it to the UI
+});
+
+// Scroll to bottom on page load
+window.addEventListener('load', function() {
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+});
+
+// Initial button state
+sendBtn.disabled = messageInput.value.trim() === '';
+</script>
+{% endblock %}
