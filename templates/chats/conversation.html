@@ -154,7 +154,7 @@
         }
 
 
-        .setting-icon{
+        .setting-icon {
             height: 40px;
         }
 
@@ -323,9 +323,9 @@
             <div class="conversation-header">
                 <h2>Chat with {{other_user.username}}</h2>
                 <a class="del-key" href="#">
-                <img class="setting-icon" src="/media/static/settings.gif/" alt="">
+                    <img class="setting-icon" src="/media/static/settings.gif/" alt="">
                 </a>
-                
+
                 <div class="chatmenu">
                     <a href="#">delete</a>
                     <a href="#">Report</a>
@@ -356,10 +356,105 @@
             <p>Email: aman@example.com</p>
         </div>
     </div>
+    <div class="getmsg">
+        <a href="{% url 'getChatMessages' chat_id %}">Get Messages</a>
+    </div>
 
     <script>
+    let lastMessageId = 0;
+    let isLoading = false;
+    
+    // Set initial last message ID from existing messages
+    const existingMessages = document.querySelectorAll('.message');
+    if (existingMessages.length > 0) {
+        // Get the last message ID from the last message
+        lastMessageId = {{ messages.last.id|default:0 }};
+    }
 
-    </script>
+    function fetchNewMessages() {
+        if (isLoading) return; // Prevent multiple simultaneous requests
+        
+        isLoading = true;
+        
+        fetch(`/chat/getChatMessages/{{chat_id}}/?last_id=${lastMessageId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.messages && data.messages.length > 0) {
+                    const messageList = document.querySelector('.message-list');
+                    
+                    data.messages.forEach(msg => {
+                        // Only add message if it's newer than our last message
+                        if (msg.id > lastMessageId) {
+                            const messageElement = document.createElement('div');
+                            messageElement.classList.add('message');
+                            messageElement.innerHTML = `
+                                <img src="${msg.sender_profile_picture}" alt="">
+                                <div class="message-info">
+                                    <a href="/viewProfile/${msg.sender_id}/">${msg.sender}</a>
+                                    <samp>${msg.text}</samp>
+                                </div>
+                            `;
+                            messageList.appendChild(messageElement);
+                            lastMessageId = msg.id;
+                        }
+                    });
+                    
+                    // Auto-scroll to bottom
+                    messageList.scrollTop = messageList.scrollHeight;
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching messages:', error);
+            })
+            .finally(() => {
+                isLoading = false;
+            });
+    }
+
+    // Fetch new messages every 2 seconds (2000ms)
+    setInterval(fetchNewMessages, 2000);
+
+    // Handle form submission to send messages without page reload
+    document.querySelector('.message-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const messageInput = document.querySelector('.message-input');
+        const message = messageInput.value.trim();
+        
+        if (message) {
+            // Create FormData to send the form data
+            const formData = new FormData();
+            formData.append('message', message);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    messageInput.value = '';
+                    // Fetch messages immediately after sending
+                    setTimeout(fetchNewMessages, 100);
+                }
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
+            });
+        }
+    });
+
+    // Auto-scroll to bottom on page load
+    window.addEventListener('load', function() {
+        const messageList = document.querySelector('.message-list');
+        messageList.scrollTop = messageList.scrollHeight;
+    });
+</script>
 </body>
 
 </html>

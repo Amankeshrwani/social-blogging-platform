@@ -1,6 +1,8 @@
 from django.shortcuts import redirect, render
 from blog.models import Users
 from .models import Chat_list, Chat_message
+from django.http import JsonResponse
+from django.utils.dateformat import DateFormat
 
 # Create your views here.
 def chatList(request):
@@ -57,3 +59,36 @@ def conversationView(request, chat_id):
         'other_user': other_user,
         'chats': all_chats
     })
+
+def get_chat_messages(request, chat_id):
+    try:
+        chat = Chat_list.objects.get(id=chat_id)
+        
+        # Get last_id parameter to only fetch newer messages
+        last_id = int(request.GET.get('last_id', 0))
+        
+        # Fix: Use chat_id instead of chat (matching your model field)
+        messages = Chat_message.objects.filter(
+            chat_id=chat,  # This matches your model field name
+            id__gt=last_id
+        ).order_by('timestamp')
+        
+        messages_data = []
+        for message in messages:
+            messages_data.append({
+                'id': message.id,
+                'text': message.message,
+                'sender': message.sender.username,
+                'sender_id': message.sender.id,
+                'sender_profile_picture': message.sender.profile_picture.url if message.sender.profile_picture else '/media/default-avatar.png',
+                'timestamp': message.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        
+        return JsonResponse({'messages': messages_data})
+        
+    except Chat_list.DoesNotExist:
+        return JsonResponse({'error': 'Chat not found'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid last_id parameter'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
